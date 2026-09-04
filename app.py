@@ -1,3 +1,4 @@
+
 """
 Vision Digital - Dashboard de ejemplo
 Estructura base: login simple, sidebar de navegacion, tarjetas de metricas,
@@ -17,7 +18,7 @@ from datetime import date
 # CONFIGURACION GENERAL
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Deseret Capacitaciones",
+    page_title="Deseret Proyectos y Capacitaciones",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -66,8 +67,8 @@ st.markdown(
 # LOGIN
 # ---------------------------------------------------------------------------
 def pantalla_login():
-    st.title("Deseret Capacitaciones")
-    st.caption("Gestion de capacitacion y visitas a sucursales")
+    st.title("Deseret Proyectos y Capacitaciones")
+    st.caption("Gestion de capacitacion")
     st.divider()
 
     with st.form("login_form"):
@@ -269,26 +270,16 @@ def pagina_capacitacion():
 # ---------------------------------------------------------------------------
 def app_principal():
     with st.sidebar:
-        st.markdown("### Deseret Capacitaciones")
-        st.caption("Gestion de capacitacion y visitas")
+        st.markdown("### Deseret Proyectos y Capacitaciones")
+        st.caption("Gestion de capacitacion")
         st.divider()
         st.write(f"**Sesion:** {st.session_state['nombre']}")
         st.caption(f"Rol: {st.session_state['rol']}")
         if st.button("Cerrar sesion"):
             st.session_state.clear()
             st.rerun()
-        st.divider()
 
-        pagina = st.radio(
-            "Navegacion",
-            ["Visitas Sucursales", "Capacitacion"],
-            label_visibility="collapsed",
-        )
-
-    if pagina == "Visitas Sucursales":
-        pagina_visitas()
-    elif pagina == "Capacitacion":
-        pagina_capacitacion()
+    pagina_capacitacion()
 
 
 # ---------------------------------------------------------------------------
