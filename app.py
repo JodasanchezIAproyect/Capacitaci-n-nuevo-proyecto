@@ -90,16 +90,17 @@ def pantalla_login():
 # ---------------------------------------------------------------------------
 # DATOS DE EJEMPLO
 # ---------------------------------------------------------------------------
+COLUMNAS_CAPACITACION = [
+    "fecha", "modulo", "submodulo", "modalidad", "tienda",
+    "responsable", "duracion_horas", "participantes", "horas_hombre",
+]
+
+
 def capacitaciones_iniciales():
-    # En un proyecto real esto vendria de un CSV, Google Sheets o una base de datos.
-    # horas_hombre = duracion_horas x participantes (se calcula al crear el curso).
-    data = [
-        {"fecha": "2026-09-02", "modulo": "LIDERAZGO", "submodulo": "LIDERAZGO ORGANIZACIONAL", "modalidad": "Virtual", "tienda": "Todas", "responsable": "Jonathan Sanchez", "duracion_horas": 2.0, "participantes": 12, "horas_hombre": 24.0},
-        {"fecha": "2026-09-16", "modulo": "LIDERAZGO", "submodulo": "ESCUELA DE LIDERAZGO JEFE DE TIENDA", "modalidad": "Presencial", "tienda": "Todas", "responsable": "Jonathan Sanchez", "duracion_horas": 4.0, "participantes": 8, "horas_hombre": 32.0},
-        {"fecha": "2026-09-17", "modulo": "LIDERAZGO", "submodulo": "ESCUELA DE LIDERAZGO JEFE DE TIENDA", "modalidad": "Presencial", "tienda": "Todas", "responsable": "Jonathan Sanchez", "duracion_horas": 4.0, "participantes": 8, "horas_hombre": 32.0},
-        {"fecha": "2026-09-28", "modulo": "VENTAS", "submodulo": "INTRODUCCION A VENTAS", "modalidad": "Presencial", "tienda": "Todas", "responsable": "Jonathan Sanchez", "duracion_horas": 3.0, "participantes": 15, "horas_hombre": 45.0},
-    ]
-    return data
+    # Lista vacia: aqui no hay cursos de ejemplo, todo lo que veas en la app
+    # lo creas tu mismo con el formulario "Crear nuevo curso", o lo puedes
+    # cargar despues desde tu propia fuente de datos (CSV, Google Sheets, etc.).
+    return []
 
 
 def cargar_capacitaciones():
@@ -107,7 +108,7 @@ def cargar_capacitaciones():
     # durante la sesion se mantengan visibles mientras usa la app.
     if "capacitaciones" not in st.session_state:
         st.session_state["capacitaciones"] = capacitaciones_iniciales()
-    return pd.DataFrame(st.session_state["capacitaciones"])
+    return pd.DataFrame(st.session_state["capacitaciones"], columns=COLUMNAS_CAPACITACION)
 
 
 # ---------------------------------------------------------------------------
