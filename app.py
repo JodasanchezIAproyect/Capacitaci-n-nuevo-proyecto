@@ -1,17 +1,16 @@
-
 """
-Vision Digital - Dashboard de ejemplo
-Estructura base: login simple, sidebar de navegacion, tarjetas de metricas,
-grafico de barras y tabla con tabs (Lista / Calendario / Registro).
+Deseret Proyectos y Capacitaciones
+Estructura base: login simple, tarjetas de metricas, formulario para crear
+cursos con calculo de horas hombre, y tabla con tabs (Lista / Calendario / Registro).
 
 Correr con:
-    pip install streamlit pandas plotly
+    pip install streamlit pandas
     streamlit run app.py
 """
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import calendar
 from datetime import date
 
 # ---------------------------------------------------------------------------
@@ -91,19 +90,6 @@ def pantalla_login():
 # ---------------------------------------------------------------------------
 # DATOS DE EJEMPLO
 # ---------------------------------------------------------------------------
-@st.cache_data
-def cargar_visitas():
-    # En un proyecto real esto vendria de un CSV, Google Sheets o una base de datos.
-    data = [
-        {"fecha": "2026-09-02", "sucursal": "Escuintla", "supervisor": "Jhonatan Capacitacion", "estado": "Visitada"},
-        {"fecha": "2026-09-03", "sucursal": "Montserrat", "supervisor": "Jhonatan Capacitacion", "estado": "Visitada"},
-        {"fecha": "2026-09-03", "sucursal": "Coban", "supervisor": "Jhonatan Capacitacion", "estado": "Visitada"},
-        {"fecha": "2026-09-04", "sucursal": "Barrios", "supervisor": "Jhonatan Capacitacion", "estado": "Visitada"},
-        {"fecha": "2026-09-04", "sucursal": "Norte", "supervisor": "Jhonatan Capacitacion", "estado": "Visitada"},
-    ]
-    return pd.DataFrame(data)
-
-
 def capacitaciones_iniciales():
     # En un proyecto real esto vendria de un CSV, Google Sheets o una base de datos.
     # horas_hombre = duracion_horas x participantes (se calcula al crear el curso).
@@ -139,50 +125,6 @@ def tarjeta_metrica(label, value, sub, columna):
             """,
             unsafe_allow_html=True,
         )
-
-
-# ---------------------------------------------------------------------------
-# PAGINA: DASHBOARD DE VISITAS
-# ---------------------------------------------------------------------------
-def pagina_visitas():
-    st.title("Visitas a Sucursales")
-    st.caption("Registro y seguimiento de supervisores en campo")
-
-    if st.button("+ Registrar Visita", type="primary"):
-        st.info("Aqui iria un formulario (st.form) para registrar una nueva visita.")
-
-    visitas = cargar_visitas()
-
-    c1, c2, c3, c4 = st.columns(4)
-    tarjeta_metrica("Visitas esta semana", len(visitas), "de 18 sucursales", c1)
-    tarjeta_metrica("Visitas - Septiembre 2026", len(visitas), "del mes seleccionado", c2)
-    tarjeta_metrica("Sucursales visitadas", visitas["sucursal"].nunique(), "de 18 en el mes", c3)
-    tarjeta_metrica("Supervisores activos", visitas["supervisor"].nunique(), "en campo", c4)
-
-    st.write("")
-    col_izq, col_der = st.columns(2)
-
-    with col_izq:
-        st.subheader("📊 Visitas por Supervisor")
-        conteo = visitas.groupby("supervisor").size().reset_index(name="visitas")
-        fig = px.bar(conteo, x="visitas", y="supervisor", orientation="h", text="visitas")
-        fig.update_layout(
-            yaxis_title="", xaxis_title="",
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font_color="#e5e7eb", height=350,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col_der:
-        st.subheader("🏬 Cobertura de Sucursales")
-        todas_sucursales = ["Escuintla", "Mazatenango", "Santa Lucia", "San Cristobal",
-                             "Obelisco", "Hincapie", "Norte", "Coban", "Barrios", "Montserrat"]
-        for suc in todas_sucursales:
-            visitas_suc = visitas[visitas["sucursal"] == suc]
-            n = len(visitas_suc)
-            estado = f"{n} visita" + ("s" if n != 1 else "") if n > 0 else "Sin visita"
-            color = "🟢" if n > 0 else "🔴"
-            st.write(f"{color} **{suc}** — {estado}")
 
 
 # ---------------------------------------------------------------------------
@@ -247,10 +189,14 @@ def pagina_capacitacion():
     tab_lista, tab_calendario, tab_qr = st.tabs(["📋 Lista", "🗓️ Calendario", "🔗 Registro (QR)"])
 
     with tab_lista:
-        st.dataframe(
-            capacitaciones,
+        capacitaciones_mostrar = capacitaciones.reset_index().rename(columns={"index": "_idx"})
+
+        evento = st.dataframe(
+            capacitaciones_mostrar.drop(columns=["_idx"]),
             use_container_width=True,
             hide_index=True,
+            on_select="rerun",
+            selection_mode="multi-row",
             column_config={
                 "duracion_horas": st.column_config.NumberColumn("Duracion (h)", format="%.1f"),
                 "participantes": st.column_config.NumberColumn("Participantes"),
@@ -258,11 +204,86 @@ def pagina_capacitacion():
             },
         )
 
+        filas_seleccionadas = evento.selection.rows if evento and evento.selection else []
+
+        if filas_seleccionadas:
+            st.warning(f"{len(filas_seleccionadas)} curso(s) seleccionado(s) para borrar.")
+            if st.button("🗑️ Borrar curso(s) seleccionado(s)", type="primary"):
+                indices_reales = capacitaciones_mostrar.iloc[filas_seleccionadas]["_idx"].tolist()
+                for i in sorted(indices_reales, reverse=True):
+                    st.session_state["capacitaciones"].pop(i)
+                st.success("Curso(s) eliminado(s).")
+                st.rerun()
+        else:
+            st.caption("Selecciona una o mas filas (marca la casilla a la izquierda) para poder borrarlas.")
+
     with tab_calendario:
-        st.info("Aqui se podria usar streamlit-calendar o una tabla agrupada por fecha.")
+        mostrar_calendario(capacitaciones, mes)
 
     with tab_qr:
         st.info("Aqui iria la generacion o lectura de codigos QR (libreria 'qrcode').")
+
+
+# ---------------------------------------------------------------------------
+# CALENDARIO INTERACTIVO
+# ---------------------------------------------------------------------------
+def mostrar_calendario(capacitaciones, mes_referencia):
+    anio = mes_referencia.year
+    mes_num = mes_referencia.month
+
+    # Fechas con curso, agrupadas por dia (para saber cuantos hay cada dia)
+    capacitaciones = capacitaciones.copy()
+    capacitaciones["fecha_dt"] = pd.to_datetime(capacitaciones["fecha"]).dt.date
+    cursos_por_dia = capacitaciones.groupby("fecha_dt").size().to_dict()
+
+    if "dia_seleccionado" not in st.session_state:
+        st.session_state["dia_seleccionado"] = None
+
+    nombre_mes = calendar.month_name[mes_num].capitalize()
+    st.markdown(f"**{nombre_mes} {anio}**")
+
+    dias_semana = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"]
+    cols_header = st.columns(7)
+    for c, d in zip(cols_header, dias_semana):
+        c.markdown(f"<div style='text-align:center; color:#6b7280; font-size:12px;'>{d}</div>", unsafe_allow_html=True)
+
+    semanas = calendar.monthcalendar(anio, mes_num)
+    for semana in semanas:
+        cols = st.columns(7)
+        for col, dia in zip(cols, semana):
+            if dia == 0:
+                col.write("")
+                continue
+            fecha_actual = date(anio, mes_num, dia)
+            n_cursos = cursos_por_dia.get(fecha_actual, 0)
+            etiqueta = f"{dia} 🔵" if n_cursos > 0 else f"{dia}"
+            tipo = "primary" if n_cursos > 0 else "secondary"
+            if col.button(etiqueta, key=f"dia_{fecha_actual}", type=tipo, use_container_width=True):
+                st.session_state["dia_seleccionado"] = fecha_actual
+
+    st.divider()
+
+    dia_sel = st.session_state["dia_seleccionado"]
+    if dia_sel:
+        cursos_del_dia = capacitaciones[capacitaciones["fecha_dt"] == dia_sel]
+        st.markdown(f"#### Cursos el {dia_sel.strftime('%d/%m/%Y')}")
+        if cursos_del_dia.empty:
+            st.info("No hay cursos programados ese dia.")
+        else:
+            for _, curso in cursos_del_dia.iterrows():
+                with st.container(border=True):
+                    st.markdown(f"**{curso['submodulo']}** · {curso['modulo']}")
+                    st.caption(
+                        f"{curso['modalidad']} · Tienda: {curso['tienda']} · "
+                        f"Responsable: {curso['responsable']}"
+                    )
+                    st.caption(
+                        f"Duracion: {curso['duracion_horas']:.1f}h · "
+                        f"Participantes: {int(curso['participantes'])} · "
+                        f"Horas hombre: {curso['horas_hombre']:.1f}"
+                    )
+    else:
+        st.caption("Toca un dia con 🔵 para ver los cursos programados.")
 
 
 # ---------------------------------------------------------------------------
