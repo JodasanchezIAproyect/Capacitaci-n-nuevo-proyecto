@@ -17,7 +17,7 @@ from datetime import date
 # CONFIGURACION GENERAL
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Vision Digital",
+    page_title="Deseret Capacitaciones",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -66,8 +66,8 @@ st.markdown(
 # LOGIN
 # ---------------------------------------------------------------------------
 def pantalla_login():
-    st.title("Vision Digital")
-    st.caption("Tu punto de impresion")
+    st.title("Deseret Capacitaciones")
+    st.caption("Gestion de capacitacion y visitas a sucursales")
     st.divider()
 
     with st.form("login_form"):
@@ -269,8 +269,8 @@ def pagina_capacitacion():
 # ---------------------------------------------------------------------------
 def app_principal():
     with st.sidebar:
-        st.markdown("### Vision Digital")
-        st.caption("Tu punto de impresion")
+        st.markdown("### Deseret Capacitaciones")
+        st.caption("Gestion de capacitacion y visitas")
         st.divider()
         st.write(f"**Sesion:** {st.session_state['nombre']}")
         st.caption(f"Rol: {st.session_state['rol']}")
